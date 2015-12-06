@@ -50,6 +50,7 @@ import com.google.gwt.core.client.Scheduler.RepeatingCommand;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.NativeEvent;
+import com.google.gwt.dom.client.Style;
 import com.google.gwt.event.dom.client.FocusHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyPressEvent;
@@ -59,6 +60,10 @@ import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.core.client.JavaScriptObject;
+import com.google.gwt.dom.client.DivElement;
+import com.google.gwt.dom.client.Document;
+
 import com.google.gwtexpui.globalkey.client.GlobalKey;
 import com.google.gwtexpui.globalkey.client.KeyCommand;
 import com.google.gwtexpui.globalkey.client.KeyCommandSet;
@@ -77,6 +82,7 @@ import net.codemirror.theme.ThemeLoader;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 /** Base class for SideBySide and Unified */
 abstract class DiffScreen extends Screen {
@@ -245,8 +251,61 @@ abstract class DiffScreen extends Screen {
       }
     }));
 
-    ConfigInfoCache.get(changeId, group2.addFinal(
+    ConfigInfoCache.get(changeId, group2.add(
         getScreenLoadCallback(comments)));
+
+    if (base != null) {
+      CoverageApi.coverage(base, path)
+        .get(group2.add(new GerritCallback<FileCoverageInfo>() {
+          @Override
+          public void onSuccess(FileCoverageInfo fileCoverageInfo) {
+            displayCoverage(fileCoverageInfo, getCms()[0]);
+          }
+        }));
+    }
+
+    CoverageApi.coverage(revision, path)
+      .get(group2.addFinal(new GerritCallback<FileCoverageInfo>() {
+        @Override
+        public void onSuccess(FileCoverageInfo fileCoverageInfo) {
+          displayCoverage(fileCoverageInfo, getCms()[1]);
+        }
+      }));
+  }
+
+  private void displayCoverage(FileCoverageInfo fileCoverageInfo, CodeMirror cm) {
+    if (fileCoverageInfo.hits() == null || fileCoverageInfo.hits().isEmpty())
+        return;
+    Set<String> lines = fileCoverageInfo.hits().keySet();
+    String title;
+    for (String lineNumber : lines) {
+      JavaScriptObject rawConditions = fileCoverageInfo.conditions().get(lineNumber);
+      int conditions = rawConditions == null ? 0 : Integer.valueOf(rawConditions.toString());
+      JavaScriptObject rawCoveredConditions = fileCoverageInfo.coveredConditions().get(lineNumber);
+      int coveredConditions = rawCoveredConditions == null ? 0 : Integer.valueOf(rawCoveredConditions.toString());
+      String divClass;
+      int hits = Integer.valueOf(fileCoverageInfo.hits().get(lineNumber).toString());
+      if (hits <= 0) {
+        divClass = "coverage-none";
+        title = "Not covered";
+      }
+      else {
+        if (conditions > 0 && conditions != coveredConditions) {
+          divClass = "coverage-partial";
+          title = coveredConditions + " out of " + conditions + " conditions were covered";
+        }
+        else {
+          divClass = "coverage-full";
+          title = "Fully covered";
+        }
+      }
+      DivElement divElement = Document.get().createDivElement();
+      divElement.setClassName(divClass);
+      divElement.setTitle(title);
+      divElement.getStyle().setWidth(100, Style.Unit.PCT);
+      divElement.setInnerHTML("&nbsp;");
+      cm.setGutterMarker(Integer.valueOf(lineNumber) - 1, "coverage", divElement);
+    }
   }
 
   private void countParents(CallbackGroup cbg) {
