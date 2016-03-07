@@ -296,37 +296,34 @@ public class SideBySide extends Screen {
   }
 
   private void displayCoverage(FileCoverageInfo fileCoverageInfo, CodeMirror cm) {
-    if (fileCoverageInfo.hits() == null || fileCoverageInfo.hits().isEmpty())
+    if (fileCoverageInfo.hits() == null || fileCoverageInfo.hits().isEmpty()) {
       return;
+    }
     Set<String> lines = fileCoverageInfo.hits().keySet();
-    String title;
     for (String lineNumber : lines) {
       JavaScriptObject rawConditions = fileCoverageInfo.conditions().get(lineNumber);
       int conditions = rawConditions == null ? 0 : Integer.valueOf(rawConditions.toString());
       JavaScriptObject rawCoveredConditions = fileCoverageInfo.coveredConditions().get(lineNumber);
       int coveredConditions = rawCoveredConditions == null ? 0 : Integer.valueOf(rawCoveredConditions.toString());
-      String divClass;
       int hits = Integer.valueOf(fileCoverageInfo.hits().get(lineNumber).toString());
-      if (hits <= 0) {
-        divClass = "coverage-none";
-        title = "Not covered";
-      }
-      else {
-        if (conditions > 0 && conditions != coveredConditions) {
-          divClass = "coverage-partial";
-          title = coveredConditions + " out of " + conditions + " conditions were covered";
-        }
-        else {
-          divClass = "coverage-full";
-          title = "Fully covered";
-        }
-      }
+
       DivElement divElement = Document.get().createDivElement();
-      divElement.setClassName(divClass);
-      divElement.setTitle(title);
-      divElement.getStyle().setWidth(100, Style.Unit.PCT);
+      divElement.addClassName(Resources.I.coverageStyle().coverageGutter());
       divElement.setInnerHTML("&nbsp;");
-      cm.setGutterMarker(Integer.valueOf(lineNumber) - 1, "coverage", divElement);
+
+      if (hits <= 0) {
+        divElement.addClassName(Resources.I.coverageStyle().coverageNone());
+        divElement.setTitle("Not covered");
+      }
+      else if (conditions > 0 && conditions != coveredConditions) {
+        divElement.addClassName(Resources.I.coverageStyle().coveragePartial());
+        divElement.setTitle(coveredConditions + " out of " + conditions + " conditions were covered");
+      } else {
+        divElement.addClassName(Resources.I.coverageStyle().coverageFull());
+        divElement.setTitle("Fully covered");
+      }
+
+      cm.setGutterMarker(Integer.valueOf(lineNumber) - 1, Resources.I.coverageStyle().coverageGutter(), divElement);
     }
   }
 
@@ -696,7 +693,7 @@ public class SideBySide extends Screen {
       .set("cursorBlinkRate", prefs.cursorBlinkRate())
       .set("cursorHeight", 0.85)
       .set("lineNumbers", prefs.showLineNumbers())
-      .set("gutters", new String[] {"CodeMirror-linenumbers", "coverage"})
+      .set("gutters", new String[] {"CodeMirror-linenumbers", Resources.I.coverageStyle().coverageGutter()})
       .set("tabSize", prefs.tabSize())
       .set("mode", fileSize == FileSize.SMALL ? getContentType(meta) : null)
       .set("lineWrapping", false)
