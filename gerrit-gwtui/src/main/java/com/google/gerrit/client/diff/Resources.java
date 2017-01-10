@@ -24,6 +24,7 @@ interface Resources extends ClientBundle {
 
   @Source("CommentBox.css") CommentBox.Style style();
   @Source("Scrollbar.css") Scrollbar.Style scrollbarStyle();
+  @Source("Coverage.css") Coverage.Style coverageStyle();
 
   @Source("goPrev.png") ImageResource goPrev();
   @Source("goNext.png") ImageResource goNext();

@@ -1,0 +1,18 @@
+.coverageGutter {
+  width: .3em !important;
+}
+
+.coverageFull {
+  background: #87c355;
+  padding-bottom: 1px;
+}
+
+.coverageNone {
+  background: #d4333f;
+  padding-bottom: 1px;
+}
+
+.coveragePartial {
+  background: #ffc035;
+  padding-bottom: 1px;
+}

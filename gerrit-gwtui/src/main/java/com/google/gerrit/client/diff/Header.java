@@ -65,6 +65,7 @@ public class Header extends Composite {
   private static final Binder uiBinder = GWT.create(Binder.class);
   static {
     Resources.I.style().ensureInjected();
+    Resources.I.coverageStyle().ensureInjected();
   }
 
   private static enum ReviewedState {
